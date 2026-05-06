@@ -220,23 +220,23 @@ export default function LandingPage() {
 
                   {/* Resto del Equipo */}
                   <div className="bg-[#020617] border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-slate-600 transition-colors">
-                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">01</div>
+                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">34</div>
                     <div>
-                      <h4 className="text-lg font-bold text-white uppercase">Ailish</h4>
+                      <h4 className="text-lg font-bold text-white uppercase">Ailish Rosario Silverio</h4>
                       <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><Palette size={14}/> Diseño de UI/UX (Experiencia de Usuario)</p>
                     </div>
                   </div>
 
                   <div className="bg-[#020617] border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-slate-600 transition-colors">
-                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">05</div>
+                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">38</div>
                     <div>
-                      <h4 className="text-lg font-bold text-white uppercase">Dilan</h4>
+                      <h4 className="text-lg font-bold text-white uppercase">Dilan Veloz Solano</h4>
                       <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><ShieldAlert size={14}/> Tester de Calidad (QA) y Pruebas</p>
                     </div>
                   </div>
 
                   <div className="bg-[#020617] border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-slate-600 transition-colors">
-                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">22</div>
+                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">10</div>
                     <div>
                       <h4 className="text-lg font-bold text-white uppercase">Perla</h4>
                       <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><Database size={14}/> Estructuración y Gestión de Entorno</p>
@@ -244,9 +244,9 @@ export default function LandingPage() {
                   </div>
 
                   <div className="bg-[#020617] border border-slate-800 p-5 rounded-2xl flex items-center gap-4 hover:border-slate-600 transition-colors">
-                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">12</div>
+                    <div className="bg-slate-800 text-slate-400 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">18</div>
                     <div>
-                      <h4 className="text-lg font-bold text-white uppercase">Jhosmeidy</h4>
+                      <h4 className="text-lg font-bold text-white uppercase">Jhosmeidy Javier Mercedes </h4>
                       <p className="text-slate-400 text-xs flex items-center gap-1 mt-1"><BookOpen size={14}/> Documentación y Recopilación Teórica</p>
                     </div>
                   </div>
