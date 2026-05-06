@@ -48,7 +48,7 @@ export default function EntrenamientoCiegoPage() {
 
         setTimeout(() => {
            const posiblesMoves = game.moves({ verbose: true });
-           if(posiblesMoves.length > 0 && !game.isGameOver()) {
+           if(posiblesMoves.length > 0 && !game.game_over()) {
              const randomMove = posiblesMoves[Math.floor(Math.random() * posiblesMoves.length)];
              game.move(randomMove);
              
@@ -57,8 +57,8 @@ export default function EntrenamientoCiegoPage() {
              setLogs(prev => [...prev, { tipo: 'enemigo', texto: `[ANOMALÍA] El enemigo ha respondido: ${randomMove.san}. Tu turno Comandante.` }]);
            }
            
-           if(game.isGameOver()) {
-             setLogs(prev => [...prev, { tipo: 'alerta', texto: `[FIN] Simulación terminada. Resultado: ${game.isCheckmate() ? 'Jaque Mate' : 'Tablas'}` }]);
+           if (game.game_over()) {
+            setLogs(prev => [...prev, { tipo: 'alerta', texto: `[FIN] Simulación terminada. Resultado: ${game.in_checkmate() ? 'Jaque Mate' : 'Tablas'}` }]);
            }
         }, 1100);
 
