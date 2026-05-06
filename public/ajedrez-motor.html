@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Motor Físico Ajedrez - HD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Motor Físico Ajedrez - Neural Touch</title>
     
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -11,12 +11,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"></script>
     
     <style>
+        /* Optimización para que no se mueva la pantalla al arrastrar piezas */
+        * { touch-action: none; } 
         body { margin: 0; padding: 0; background-color: #020617; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; background-image: radial-gradient(circle at center, #0f172a 0%, #020617 100%); }
         #tablero { width: 95vw; height: 95vw; max-width: 550px; max-height: 550px; border: 8px solid #1e120d; border-bottom: 25px solid #0a0604; border-radius: 6px; box-shadow: 0 30px 60px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.5); }
         .white-1e1d7 { background-color: #e2e8f0; }
         .black-3c85d { background-color: #334155; }
-        .piece-417db { filter: drop-shadow(4px 10px 5px rgba(0, 0, 0, 0.7)); transition: transform 0.1s ease; }
-        .piece-417db:active { filter: drop-shadow(10px 20px 10px rgba(0, 0, 0, 0.5)); transform: scale(1.1) translateY(-5px); }
+        .piece-417db { filter: drop-shadow(4px 10px 5px rgba(0, 0, 0, 0.7)); transition: transform 0.1s ease; cursor: pointer; }
         .vulnerable { background-color: rgba(239, 68, 68, 0.6) !important; box-shadow: inset 0 0 30px 10px rgba(220, 38, 38, 0.9), 0 0 15px red !important; border: 2px solid #f87171; border-radius: 4px; animation: latido 1.5s infinite; }
         @keyframes latido { 0% { box-shadow: inset 0 0 30px 10px rgba(220, 38, 38, 0.9); } 50% { box-shadow: inset 0 0 10px 2px rgba(220, 38, 38, 0.5); } 100% { box-shadow: inset 0 0 30px 10px rgba(220, 38, 38, 0.9); } }
     </style>
@@ -28,14 +29,12 @@
         var board = null;
         var game = new Chess();
         var idCasillasVulnerables = [];
-        
-        // 🔥 CORRECCIÓN: Por defecto 'libre' para no romper la Academia 🔥
         var miBandoActual = 'libre'; 
 
+        // 🔥 FIX VERCEL: Usamos game.game_over() siempre
         function onDragStart (source, piece, position, orientation) {
             if (game.game_over()) return false;
             
-            // Reglas estrictas solo si se define un bando (como en el Coliseo)
             if (miBandoActual !== 'libre') {
                 if (miBandoActual === 'w' && piece.search(/^b/) !== -1) return false; 
                 if (miBandoActual === 'b' && piece.search(/^w/) !== -1) return false; 
@@ -70,13 +69,36 @@
         };
         board = Chessboard('tablero', config);
 
+        // 🚀 PUENTE TÁCTICO PARA DISPOSITIVOS TÁCTILES 🚀
+        // Este bloque permite que el dedo funcione como un mouse en tablets y laptops táctiles
+        function touchHandler(event) {
+            var touches = event.changedTouches,
+                first = touches[0],
+                type = "";
+            switch(event.type) {
+                case "touchstart": type = "mousedown"; break;
+                case "touchmove":  type = "mousemove"; break;        
+                case "touchend":   type = "mouseup";   break;
+                default:           return;
+            }
+            var simulatedEvent = document.createEvent("MouseEvent");
+            simulatedEvent.initMouseEvent(type, true, true, window, 1, 
+                              first.screenX, first.screenY, 
+                              first.clientX, first.clientY, false, 
+                              false, false, false, 0, null);
+            first.target.dispatchEvent(simulatedEvent);
+        }
+        document.addEventListener("touchstart", touchHandler, true);
+        document.addEventListener("touchmove", touchHandler, true);
+        document.addEventListener("touchend", touchHandler, true);
+        document.addEventListener("touchcancel", touchHandler, true);
+
         window.addEventListener('message', function(event) {
             if (event.data.tipo === 'SET_BANDO') {
                 miBandoActual = event.data.bando;
                 if (miBandoActual === 'b') { board.orientation('black'); } 
                 else { board.orientation('white'); }
             }
-            // 🔥 AQUÍ ESTÁ LA PIEZA FALTANTE QUE ROMPIÓ LOS PUZZLES 🔥
             else if (event.data.tipo === 'CARGAR_FEN') {
                 if (game.fen() !== event.data.fen) {
                     limpiarVulnerabilidades();
