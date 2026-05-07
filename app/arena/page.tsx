@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Swords, Zap, Cpu, History, PenLine, Settings2, User, UserCheck } from 'lucide-react';
+import { Swords, Zap, Cpu, History, PenLine, Settings2, User, Users } from 'lucide-react';
 
 const NIVELES = [
   { id: 1, nombre: 'Novato', skill: 0, depth: 1, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
@@ -21,6 +21,7 @@ export default function ColiseoPage() {
   const [engineReady, setEngineReady] = useState<boolean>(false);
   
   // CONFIGURACIONES DE PARTIDA
+  const [modoJuego, setModoJuego] = useState<'ia' | 'local'>('ia'); // 🔥 NUEVO: Modo de juego
   const [nivelActivo, setNivelActivo] = useState(NIVELES[0]);
   const [colorJugador, setColorJugador] = useState<'w' | 'b'>('w');
   
@@ -46,7 +47,6 @@ export default function ColiseoPage() {
           if (typeof line !== "string") return;
           if (line === "uciok") {
             setEngineReady(true);
-            // Configurar nivel de habilidad inicial
             worker?.postMessage(`setoption name Skill Level value ${nivelActivo.skill}`);
           } else if (line.startsWith("bestmove")) {
             const moveStr = line.split(" ")[1];
@@ -66,6 +66,7 @@ export default function ColiseoPage() {
     return () => { if (worker) worker.terminate(); };
   }, []);
 
+  // 🔥 Se añadió 'modoJuego' a las dependencias para que sepa cuándo NO usar la IA
   useEffect(() => {
     const handleMensajeIframe = (event: MessageEvent) => {
       if (!event.data) return;
@@ -76,14 +77,13 @@ export default function ColiseoPage() {
 
         setRegistro((prev) => [...prev, jugada]);
         
-        // Poner a pensar a la máquina
-        if (stockfishRef.current) {
-            stockfishRef.current.postMessage(`position fen ${nuevoFen}`);
-            stockfishRef.current.postMessage(`go depth ${nivelActivo.depth}`);
+        // 🔥 SOLO pone a pensar a la máquina si estamos en modo IA
+        if (modoJuego === 'ia' && stockfishRef.current) {
+          stockfishRef.current.postMessage(`position fen ${nuevoFen}`);
+          stockfishRef.current.postMessage(`go depth ${nivelActivo.depth}`);
         }
       } 
       else if (event.data.tipo === 'MOTOR_MOVIO') {
-        // La máquina contestó y el iframe ya lo aplicó
         setRegistro((prev) => [...prev, event.data.san]);
       }
       else if (event.data.tipo === 'ERROR_JUGADA') {
@@ -93,11 +93,10 @@ export default function ColiseoPage() {
 
     window.addEventListener('message', handleMensajeIframe);
     return () => window.removeEventListener('message', handleMensajeIframe);
-  }, [nivelActivo]);
+  }, [nivelActivo, modoJuego]);
 
   const procesarRespuestaMotor = async (moveStr: string) => {
       if(iframeRef.current && iframeRef.current.contentWindow) {
-          // Le mandamos las coordenadas al iframe (ej: e2e4)
           iframeRef.current.contentWindow.postMessage({ tipo: 'JUGADA_MOTOR', san: moveStr }, '*');
       }
   };
@@ -120,14 +119,14 @@ export default function ColiseoPage() {
     
     if(iframeRef.current && iframeRef.current.contentWindow) {
        iframeRef.current.contentWindow.postMessage({ tipo: 'REINICIAR' }, '*');
-       iframeRef.current.contentWindow.postMessage({ tipo: 'SET_BANDO', bando: colorJugador }, '*');
+       // 🔥 Si es modo local, enviamos 'libre' para poder mover ambas piezas
+       iframeRef.current.contentWindow.postMessage({ tipo: 'SET_BANDO', bando: modoJuego === 'local' ? 'libre' : colorJugador }, '*');
     }
     
-    if (stockfishRef.current) {
+    if (modoJuego === 'ia' && stockfishRef.current) {
         stockfishRef.current.postMessage("ucinewgame");
         stockfishRef.current.postMessage(`setoption name Skill Level value ${nivelActivo.skill}`);
         
-        // Si el humano eligió Negras, Stockfish juega con Blancas y empieza de inmediato
         if (colorJugador === 'b') {
             stockfishRef.current.postMessage("position startpos");
             stockfishRef.current.postMessage(`go depth ${nivelActivo.depth}`);
@@ -141,23 +140,27 @@ export default function ColiseoPage() {
       {/* PANEL SUPERIOR DE ESTADO */}
       <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[#0B1121]/80 border border-[#1E293B] p-4 rounded-2xl flex items-center gap-4">
-          <div className={`p-3 rounded-xl bg-slate-900 border border-slate-700 ${nivelActivo.color}`}>
-            <Swords size={24} />
+          <div className={`p-3 rounded-xl bg-slate-900 border border-slate-700 ${modoJuego === 'local' ? 'text-emerald-400' : nivelActivo.color}`}>
+            {modoJuego === 'local' ? <Users size={24} /> : <Swords size={24} />}
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Adversario Activo</p>
-            <h3 className="font-bold text-white text-lg tracking-tight">Stockfish - {nivelActivo.nombre}</h3>
+            <h3 className="font-bold text-white text-lg tracking-tight">
+              {modoJuego === 'local' ? '1 vs 1 (Modo Local)' : `Stockfish - ${nivelActivo.nombre}`}
+            </h3>
           </div>
         </div>
 
         <div className="bg-gradient-to-r from-[#0B1121] to-[#0f172a] border border-blue-500/30 p-4 rounded-2xl flex items-center gap-4">
            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400">
-              {engineReady ? <Zap size={24} /> : <Cpu size={24} className="animate-spin text-slate-500" />}
+              {modoJuego === 'local' ? <Users size={24} /> : (engineReady ? <Zap size={24} /> : <Cpu size={24} className="animate-spin text-slate-500" />)}
            </div>
            <div className="flex-1">
               <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400/60">Motor Físico (WASM)</p>
               <p className="text-sm font-bold text-white">
-                  {engineReady ? 'Calculando a máxima velocidad' : 'Iniciando Redes Neuronales...'}
+                  {modoJuego === 'local' 
+                    ? 'Modo multijugador local activado' 
+                    : (engineReady ? 'Calculando a máxima velocidad' : 'Iniciando Redes Neuronales...')}
               </p>
            </div>
         </div>
@@ -179,39 +182,56 @@ export default function ColiseoPage() {
           </h4>
           
           <div className="flex-1 space-y-6">
-             {/* SELECCIÓN DE COLOR */}
+             
+             {/* 🔥 NUEVO: SELECCIÓN DE MODO DE JUEGO */}
              <div>
-                <label className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-3 block">1. Elige tu facción</label>
-                <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setColorJugador('w')} className={`py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${colorJugador === 'w' ? 'bg-slate-200 text-black shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5'}`}>
-                        <div className="w-4 h-4 rounded-full bg-white border border-slate-400"></div> Blancas
+                <label className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-3 block">Modo de Combate</label>
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                    <button onClick={() => setModoJuego('ia')} className={`py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${modoJuego === 'ia' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                        <Cpu size={18} /> VS IA
                     </button>
-                    <button onClick={() => setColorJugador('b')} className={`py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${colorJugador === 'b' ? 'bg-slate-800 text-white shadow-lg border border-slate-600' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5'}`}>
-                        <div className="w-4 h-4 rounded-full bg-black border border-slate-600"></div> Negras
+                    <button onClick={() => setModoJuego('local')} className={`py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${modoJuego === 'local' ? 'bg-emerald-600 text-white shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                        <Users size={18} /> 1 vs 1
                     </button>
                 </div>
              </div>
 
-             {/* SELECCIÓN DE DIFICULTAD */}
-             <div>
-                <label className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-3 block">2. Nivel de la Máquina</label>
-                <div className="flex flex-col gap-2">
-                    {NIVELES.map(nivel => (
-                        <button 
-                          key={nivel.id} 
-                          onClick={() => setNivelActivo(nivel)}
-                          className={`px-4 py-3 rounded-xl flex items-center justify-between text-sm transition-all border ${nivelActivo.id === nivel.id ? `${nivel.bg} ${nivel.color} border-current shadow-lg` : 'bg-transparent border-[#1E293B] text-slate-400 hover:bg-white/5'}`}
-                        >
-                            <span className="font-bold">{nivel.nombre}</span>
-                            <span className="text-[10px] uppercase tracking-widest opacity-60">Lvl {nivel.id}</span>
+             {/* SELECCIÓN DE COLOR Y DIFICULTAD (Solo se muestra si juegas contra IA) */}
+             {modoJuego === 'ia' && (
+               <>
+                 <div>
+                    <label className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-3 block">Elige tu facción</label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => setColorJugador('w')} className={`py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${colorJugador === 'w' ? 'bg-slate-200 text-black shadow-lg' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5'}`}>
+                            <div className="w-4 h-4 rounded-full bg-white border border-slate-400"></div> Blancas
                         </button>
-                    ))}
-                </div>
-             </div>
+                        <button onClick={() => setColorJugador('b')} className={`py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${colorJugador === 'b' ? 'bg-slate-800 text-white shadow-lg border border-slate-600' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/5'}`}>
+                            <div className="w-4 h-4 rounded-full bg-black border border-slate-600"></div> Negras
+                        </button>
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="text-[10px] font-black tracking-widest text-slate-500 uppercase mb-3 block">Nivel de la Máquina</label>
+                    <div className="flex flex-col gap-2">
+                        {NIVELES.map(nivel => (
+                            <button 
+                              key={nivel.id} 
+                              onClick={() => setNivelActivo(nivel)}
+                              className={`px-4 py-2 rounded-xl flex items-center justify-between text-sm transition-all border ${nivelActivo.id === nivel.id ? `${nivel.bg} ${nivel.color} border-current shadow-lg` : 'bg-transparent border-[#1E293B] text-slate-400 hover:bg-white/5'}`}
+                            >
+                                <span className="font-bold">{nivel.nombre}</span>
+                                <span className="text-[10px] uppercase tracking-widest opacity-60">Lvl {nivel.id}</span>
+                            </button>
+                        ))}
+                    </div>
+                 </div>
+               </>
+             )}
           </div>
 
           <button onClick={iniciarPartida} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-500 transition-colors shadow-[0_0_20px_rgba(37,99,235,0.3)] mt-4">
-             Iniciar Combate
+              Iniciar Combate
           </button>
         </div>
 
@@ -231,8 +251,8 @@ export default function ColiseoPage() {
             }, []).map((pair, i) => (
               <div key={i} className="flex justify-between border-b border-slate-800/50 py-2 bg-slate-900/20 px-2 rounded hover:bg-slate-800/40 transition-colors">
                 <span className="text-slate-600 font-black w-8">{i + 1}.</span>
-                <span className={`flex-1 text-center font-bold ${colorJugador === 'w' ? 'text-emerald-400' : 'text-rose-400'}`}>{pair[0]}</span>
-                <span className={`flex-1 text-center font-bold ${colorJugador === 'w' ? 'text-rose-400' : 'text-emerald-400'}`}>{pair[1] || ''}</span>
+                <span className={`flex-1 text-center font-bold ${modoJuego === 'local' || colorJugador === 'w' ? 'text-emerald-400' : 'text-rose-400'}`}>{pair[0]}</span>
+                <span className={`flex-1 text-center font-bold ${modoJuego === 'local' || colorJugador === 'w' ? 'text-rose-400' : 'text-emerald-400'}`}>{pair[1] || ''}</span>
               </div>
             ))}
             <div ref={registroEndRef} />
